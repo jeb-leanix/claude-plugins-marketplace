@@ -5,20 +5,39 @@
 ## 🚀 Quick Start
 
 ```bash
-# Clone marketplace
+# 1. Clone marketplace
 git clone --recurse-submodules https://github.com/jeb-leanix/claude-plugins-marketplace.git
 cd claude-plugins-marketplace
 
-# Install CLI
+# 2. Register marketplace in Claude Code
+# Edit ~/.claude/settings.json and add:
+```
+```json
+{
+  "extraKnownMarketplaces": {
+    "team-marketplace": {
+      "source": {
+        "source": "directory",
+        "path": "/absolute/path/to/claude-plugins-marketplace/plugins"
+      }
+    }
+  }
+}
+```
+
+**Important:** Replace `/absolute/path/to/` with your actual path!
+
+```bash
+# 3. Install CLI (optional, for managing plugins)
 ./cli/install.sh
 
-# List available plugins
+# 4. List available plugins
 claude-plugin list
 
-# Install a plugin
+# 5. Install a plugin
 claude-plugin install <plugin-name>
 
-# Create new plugin from template
+# 6. Create new plugin from template
 claude-plugin create my-new-plugin
 ```
 
