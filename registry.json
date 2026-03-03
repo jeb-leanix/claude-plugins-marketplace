@@ -12,6 +12,19 @@
       "repository": "https://github.com/jeb-leanix/claude-plugin-template.git",
       "category": "template",
       "tags": ["template", "starter"]
+    },
+    {
+      "id": "pr-notifier",
+      "name": "GitHub PR Notifier",
+      "version": "1.0.0",
+      "team": "shared",
+      "visibility": "public",
+      "description": "Monitor GitHub PRs - CI/CD checks, reviews, comments with Jira key support",
+      "path": "plugins/shared/pr-notifier",
+      "repository": "https://github.com/jeb-leanix/pr-notifier.git",
+      "category": "development",
+      "tags": ["github", "pr", "ci-cd", "jira", "notifications"],
+      "requirements": ["gh"]
     }
   ]
 }

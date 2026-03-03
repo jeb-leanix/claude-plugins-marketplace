@@ -1,3 +1,6 @@
 [submodule "templates/plugin-template"]
 	path = templates/plugin-template
 	url = https://github.com/jeb-leanix/claude-plugin-template.git
+[submodule "plugins/shared/pr-notifier"]
+	path = plugins/shared/pr-notifier
+	url = https://github.com/jeb-leanix/pr-notifier.git
