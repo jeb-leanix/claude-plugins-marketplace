@@ -1,0 +1,268 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Claude Plugins Marketplace CLI
+# Manages Claude Code plugins via git submodules
+
+VERSION="1.0.0"
+MARKETPLACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REGISTRY_FILE="$MARKETPLACE_ROOT/registry.json"
+CLAUDE_PLUGINS_DIR="${HOME}/.claude/plugins/local"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Helper functions
+error() {
+    echo -e "${RED}Error: $1${NC}" >&2
+    exit 1
+}
+
+success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+info() {
+    echo -e "${BLUE}ℹ $1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+# Check if jq is installed
+command -v jq >/dev/null 2>&1 || error "jq is required. Install with: brew install jq"
+
+# Commands
+cmd_list() {
+    local team_filter="${1:-}"
+    local shared_only="${2:-false}"
+
+    info "Available plugins:"
+    echo
+
+    local filter=".plugins[]"
+    if [[ "$shared_only" == "true" ]]; then
+        filter="$filter | select(.team == \"shared\")"
+    elif [[ -n "$team_filter" ]]; then
+        filter="$filter | select(.team == \"$team_filter\")"
+    fi
+
+    jq -r "$filter | \"  \(.id) (\(.version)) - \(.description)\"" "$REGISTRY_FILE"
+    echo
+    info "Use 'claude-plugin install <plugin-id>' to install"
+}
+
+cmd_install() {
+    local plugin_id="${1:-}"
+    [[ -z "$plugin_id" ]] && error "Usage: claude-plugin install <plugin-id>"
+
+    # Get plugin info from registry
+    local plugin_info=$(jq -r ".plugins[] | select(.id == \"$plugin_id\")" "$REGISTRY_FILE")
+    [[ -z "$plugin_info" ]] && error "Plugin '$plugin_id' not found in registry"
+
+    local plugin_path=$(echo "$plugin_info" | jq -r '.path')
+    local plugin_name=$(echo "$plugin_info" | jq -r '.name')
+    local plugin_version=$(echo "$plugin_info" | jq -r '.version')
+    local plugin_repo=$(echo "$plugin_info" | jq -r '.repository // empty')
+
+    info "Installing $plugin_name v$plugin_version..."
+
+    # If plugin has external repository, use it as submodule
+    if [[ -n "$plugin_repo" ]]; then
+        cd "$MARKETPLACE_ROOT"
+        if [[ ! -d "$plugin_path/.git" ]]; then
+            git submodule add "$plugin_repo" "$plugin_path" || warn "Submodule might already exist"
+        fi
+        git submodule update --init --recursive "$plugin_path"
+    fi
+
+    # Create symlink to Claude plugins directory
+    mkdir -p "$CLAUDE_PLUGINS_DIR"
+    local target="$MARKETPLACE_ROOT/$plugin_path"
+    local link="$CLAUDE_PLUGINS_DIR/$plugin_id"
+
+    if [[ -L "$link" ]]; then
+        warn "Plugin already installed. Updating..."
+        rm "$link"
+    fi
+
+    ln -s "$target" "$link"
+    success "Installed $plugin_name to $link"
+}
+
+cmd_update() {
+    local plugin_id="${1:-}"
+
+    if [[ -z "$plugin_id" ]]; then
+        # Update all installed plugins
+        info "Updating all plugins..."
+        cd "$MARKETPLACE_ROOT"
+        git submodule update --remote --merge
+        success "All plugins updated"
+    else
+        # Update specific plugin
+        local plugin_info=$(jq -r ".plugins[] | select(.id == \"$plugin_id\")" "$REGISTRY_FILE")
+        [[ -z "$plugin_info" ]] && error "Plugin '$plugin_id' not found"
+
+        local plugin_path=$(echo "$plugin_info" | jq -r '.path')
+
+        info "Updating $plugin_id..."
+        cd "$MARKETPLACE_ROOT"
+        git submodule update --remote --merge "$plugin_path"
+        success "Updated $plugin_id"
+    fi
+}
+
+cmd_create() {
+    local plugin_name="${1:-}"
+    [[ -z "$plugin_name" ]] && error "Usage: claude-plugin create <plugin-name>"
+
+    # Ask for team
+    read -p "Team (default: team-takeoff): " team
+    team="${team:-team-takeoff}"
+
+    local plugin_dir="$MARKETPLACE_ROOT/plugins/$team/$plugin_name"
+
+    [[ -d "$plugin_dir" ]] && error "Plugin '$plugin_name' already exists"
+
+    info "Creating plugin '$plugin_name' for $team..."
+
+    # Copy template
+    mkdir -p "$plugin_dir/skills"
+
+    # Create plugin.json
+    cat > "$plugin_dir/plugin.json" <<EOF
+{
+  "name": "$plugin_name",
+  "version": "1.0.0",
+  "description": "Description for $plugin_name",
+  "author": "$(git config user.name)",
+  "skills": []
+}
+EOF
+
+    # Create README.md
+    cat > "$plugin_dir/README.md" <<EOF
+# $plugin_name
+
+Description of what this plugin does.
+
+## Skills
+
+- \`skill-name\`: Description
+
+## Usage
+
+\`\`\`bash
+# Example usage
+\`\`\`
+
+## Development
+
+See [plugin development guide](../../README.md#plugin-development).
+EOF
+
+    # Add to registry.json
+    local temp_file=$(mktemp)
+    jq ".plugins += [{
+        \"id\": \"$plugin_name\",
+        \"name\": \"$plugin_name\",
+        \"version\": \"1.0.0\",
+        \"team\": \"$team\",
+        \"visibility\": \"team-only\",
+        \"description\": \"Description for $plugin_name\",
+        \"path\": \"plugins/$team/$plugin_name\",
+        \"category\": \"tool\",
+        \"tags\": []
+    }]" "$REGISTRY_FILE" > "$temp_file" && mv "$temp_file" "$REGISTRY_FILE"
+
+    success "Created plugin at $plugin_dir"
+    info "Next steps:"
+    echo "  1. cd $plugin_dir"
+    echo "  2. Edit plugin.json and README.md"
+    echo "  3. Add skills in skills/ directory"
+    echo "  4. Test locally: claude-plugin install $plugin_name"
+    echo "  5. Commit and push"
+}
+
+cmd_uninstall() {
+    local plugin_id="${1:-}"
+    [[ -z "$plugin_id" ]] && error "Usage: claude-plugin uninstall <plugin-id>"
+
+    local link="$CLAUDE_PLUGINS_DIR/$plugin_id"
+
+    [[ ! -L "$link" ]] && error "Plugin '$plugin_id' not installed"
+
+    rm "$link"
+    success "Uninstalled $plugin_id"
+}
+
+cmd_info() {
+    local plugin_id="${1:-}"
+    [[ -z "$plugin_id" ]] && error "Usage: claude-plugin info <plugin-id>"
+
+    local plugin_info=$(jq -r ".plugins[] | select(.id == \"$plugin_id\")" "$REGISTRY_FILE")
+    [[ -z "$plugin_info" ]] && error "Plugin '$plugin_id' not found"
+
+    echo "$plugin_info" | jq '.'
+}
+
+cmd_help() {
+    cat <<EOF
+Claude Plugins Marketplace CLI v$VERSION
+
+Usage: claude-plugin <command> [options]
+
+Commands:
+  list [--team=<team>] [--shared]  List available plugins
+  install <plugin-id>               Install a plugin
+  uninstall <plugin-id>             Uninstall a plugin
+  update [plugin-id]                Update plugin(s)
+  create <plugin-name>              Create new plugin from template
+  info <plugin-id>                  Show plugin details
+  help                              Show this help
+
+Examples:
+  claude-plugin list
+  claude-plugin list --team=takeoff
+  claude-plugin install deployment-helper
+  claude-plugin create my-plugin
+  claude-plugin update
+
+Documentation: https://github.com/jeb-leanix/claude-plugins-marketplace
+EOF
+}
+
+# Main
+main() {
+    local command="${1:-help}"
+    shift || true
+
+    case "$command" in
+        list)
+            local team=""
+            local shared="false"
+            for arg in "$@"; do
+                case "$arg" in
+                    --team=*) team="${arg#*=}" ;;
+                    --shared) shared="true" ;;
+                esac
+            done
+            cmd_list "$team" "$shared"
+            ;;
+        install) cmd_install "$@" ;;
+        uninstall) cmd_uninstall "$@" ;;
+        update) cmd_update "$@" ;;
+        create) cmd_create "$@" ;;
+        info) cmd_info "$@" ;;
+        help|--help|-h) cmd_help ;;
+        *) error "Unknown command: $command. Use 'claude-plugin help' for usage." ;;
+    esac
+}
+
+main "$@"
