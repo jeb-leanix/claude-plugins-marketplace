@@ -18,6 +18,8 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 MARKETPLACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REGISTRY_FILE="$MARKETPLACE_ROOT/registry.json"
 CLAUDE_PLUGINS_DIR="${HOME}/.claude/plugins/local"
+CLAUDE_LOCAL_PLUGINS_DIR="${HOME}/.claude/local-plugins"
+CLAUDE_CACHE_DIR="${HOME}/.claude/plugins/cache/local"
 
 # Colors
 RED='\033[0;31m'
@@ -47,6 +49,15 @@ warn() {
 # Check if jq is installed
 command -v jq >/dev/null 2>&1 || error "jq is required. Install with: brew install jq"
 
+# Helper to check if plugin is installed
+is_plugin_installed() {
+    local plugin_id="$1"
+    # Check multiple possible installation locations
+    [[ -L "$CLAUDE_PLUGINS_DIR/$plugin_id" ]] || \
+    [[ -d "$CLAUDE_LOCAL_PLUGINS_DIR/$plugin_id" ]] || \
+    [[ -d "$CLAUDE_CACHE_DIR/$plugin_id" ]]
+}
+
 # Commands
 cmd_list() {
     local team_filter="${1:-}"
@@ -62,7 +73,21 @@ cmd_list() {
         filter="$filter | select(.team == \"$team_filter\")"
     fi
 
-    jq -r "$filter | \"  \(.id) (\(.version)) - \(.description)\"" "$REGISTRY_FILE"
+    # Read plugins and show install status
+    while IFS= read -r plugin; do
+        local plugin_id=$(echo "$plugin" | jq -r '.id')
+        local plugin_version=$(echo "$plugin" | jq -r '.version')
+        local plugin_description=$(echo "$plugin" | jq -r '.description')
+
+        if is_plugin_installed "$plugin_id"; then
+            echo -e "  ${GREEN}✓${NC} $plugin_id (v$plugin_version) - ${GREEN}Installed${NC}"
+            echo "    $plugin_description"
+        else
+            echo -e "  ${BLUE}📦${NC} $plugin_id (v$plugin_version) - ${BLUE}Available${NC}"
+            echo "    $plugin_description"
+        fi
+    done < <(jq -c "$filter" "$REGISTRY_FILE")
+
     echo
     info "Use 'claude-plugin install <plugin-id>' to install"
 }
@@ -222,6 +247,45 @@ cmd_info() {
     echo "$plugin_info" | jq '.'
 }
 
+cmd_docs() {
+    local plugin_id="${1:-}"
+    [[ -z "$plugin_id" ]] && error "Usage: claude-plugin docs <plugin-id>"
+
+    # Check if plugin exists in registry
+    local plugin_info=$(jq -r ".plugins[] | select(.id == \"$plugin_id\")" "$REGISTRY_FILE")
+    [[ -z "$plugin_info" ]] && error "Plugin '$plugin_id' not found in registry"
+
+    # Try to find README in multiple locations
+    local readme_found=false
+    local locations=(
+        "$CLAUDE_LOCAL_PLUGINS_DIR/$plugin_id/README.md"
+        "$CLAUDE_CACHE_DIR/$plugin_id/README.md"
+        "$CLAUDE_PLUGINS_DIR/$plugin_id/README.md"
+    )
+
+    for readme_path in "${locations[@]}"; do
+        if [[ -f "$readme_path" ]]; then
+            info "Showing documentation for $plugin_id"
+            echo
+
+            # Use bat if available for syntax highlighting, otherwise cat
+            if command -v bat &> /dev/null; then
+                bat --style=plain --paging=never "$readme_path"
+            else
+                cat "$readme_path"
+            fi
+
+            readme_found=true
+            break
+        fi
+    done
+
+    if [[ "$readme_found" == "false" ]]; then
+        warn "README.md not found for $plugin_id"
+        info "Plugin might not be installed. Try: claude-plugin install $plugin_id"
+    fi
+}
+
 cmd_help() {
     cat <<EOF
 Claude Plugins Marketplace CLI v$VERSION
@@ -234,13 +298,15 @@ Commands:
   uninstall <plugin-id>             Uninstall a plugin
   update [plugin-id]                Update plugin(s)
   create <plugin-name>              Create new plugin from template
-  info <plugin-id>                  Show plugin details
+  docs <plugin-id>                  Show plugin documentation
+  info <plugin-id>                  Show plugin details (JSON)
   help                              Show this help
 
 Examples:
   claude-plugin list
   claude-plugin list --team=takeoff
   claude-plugin install deployment-helper
+  claude-plugin docs pr-notifier
   claude-plugin create my-plugin
   claude-plugin update
 
@@ -269,6 +335,7 @@ main() {
         uninstall) cmd_uninstall "$@" ;;
         update) cmd_update "$@" ;;
         create) cmd_create "$@" ;;
+        docs) cmd_docs "$@" ;;
         info) cmd_info "$@" ;;
         help|--help|-h) cmd_help ;;
         *) error "Unknown command: $command. Use 'claude-plugin help' for usage." ;;
