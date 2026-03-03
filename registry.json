@@ -25,6 +25,19 @@
       "category": "development",
       "tags": ["github", "pr", "ci-cd", "jira", "notifications"],
       "requirements": ["gh"]
+    },
+    {
+      "id": "jira-status-update",
+      "name": "Jira Epic Status Update",
+      "version": "1.0.0",
+      "team": "team-takeoff",
+      "visibility": "team-only",
+      "description": "Generate comprehensive status updates for Jira Epics with interactive Slack posting",
+      "path": "plugins/team-takeoff/jira-status-update",
+      "repository": "https://github.com/jeb-leanix/jira-status-update-command.git",
+      "category": "productivity",
+      "tags": ["jira", "slack", "status-update", "epic", "team-takeoff"],
+      "requirements": ["leanix-atlassian-mcp", "slack-bot-token"]
     }
   ]
 }

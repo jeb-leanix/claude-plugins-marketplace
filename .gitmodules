@@ -4,3 +4,6 @@
 [submodule "plugins/shared/pr-notifier"]
 	path = plugins/shared/pr-notifier
 	url = https://github.com/jeb-leanix/pr-notifier.git
+[submodule "plugins/team-takeoff/jira-status-update"]
+	path = plugins/team-takeoff/jira-status-update
+	url = git@github.com:jeb-leanix/jira-status-update-command.git
