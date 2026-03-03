@@ -1,0 +1,12 @@
+{
+  "name": "leanix-team-marketplace",
+  "displayName": "LeanIX Team Marketplace",
+  "version": "1.0.0",
+  "description": "Team marketplace for LeanIX Claude Code plugins - shared and team-specific tools",
+  "homepage": "https://github.com/jeb-leanix/claude-plugins-marketplace",
+  "owner": {
+    "name": "LeanIX Teams",
+    "url": "https://github.com/jeb-leanix"
+  },
+  "plugins": []
+}
