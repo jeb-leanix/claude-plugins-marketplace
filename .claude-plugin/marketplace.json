@@ -8,5 +8,26 @@
     "name": "LeanIX Teams",
     "url": "https://github.com/jeb-leanix"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "pr-notifier",
+      "source": "./plugins/shared/pr-notifier",
+      "description": "Monitor GitHub PRs - CI/CD checks, reviews, comments with Jira key support",
+      "version": "1.0.0",
+      "category": "shared",
+      "author": {
+        "name": "LeanIX Shared"
+      }
+    },
+    {
+      "name": "jira-status-update",
+      "source": "./plugins/team-takeoff/jira-status-update",
+      "description": "Generate comprehensive status updates for Jira Epics with interactive Slack posting",
+      "version": "1.0.0",
+      "category": "team-takeoff",
+      "author": {
+        "name": "Team TAKEOFF"
+      }
+    }
+  ]
 }

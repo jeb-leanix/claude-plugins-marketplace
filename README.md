@@ -1,59 +1,145 @@
 # Claude Code Plugins Marketplace
 
-> Team marketplace for Claude Code plugins using git submodules
+[![Build Plugins](https://github.com/jeb-leanix/claude-plugins-marketplace/actions/workflows/build-plugins.yml/badge.svg)](https://github.com/jeb-leanix/claude-plugins-marketplace/actions/workflows/build-plugins.yml)
+
+> Team marketplace for Claude Code plugins using git submodules with automated CI/CD builds
+
+## 🎯 Workflow Overview
+
+1. **Clone** marketplace repo (pre-built branch - no build needed!)
+2. **Register** marketplace path in Claude settings
+3. **Enable** desired plugins in settings
+4. **Use** plugin commands directly (e.g., `/pr-watch`, `/status-update`)
+
+No build step, no install step - plugins are ready to use! 🎉
 
 ## 🚀 Quick Start
 
+### Option A: Use Pre-Built Branch (Recommended)
+
 ```bash
-# 1. Clone marketplace
+# 1. Clone the 'built' branch with pre-compiled plugins
+git clone -b built --recurse-submodules https://github.com/jeb-leanix/claude-plugins-marketplace.git
+cd claude-plugins-marketplace
+
+# That's it! Plugins are ready to use. Continue to step 2.
+```
+
+### Option B: Build from Source
+
+```bash
+# 1. Clone main branch with submodules
 git clone --recurse-submodules https://github.com/jeb-leanix/claude-plugins-marketplace.git
 cd claude-plugins-marketplace
 
-# 2. Register marketplace in Claude Code
+# If you already cloned without --recurse-submodules:
+git submodule update --init --recursive
+
+# 2. Build all plugins
+./build-plugins.sh
+
+# 3. Register marketplace in Claude Code
+# Edit ~/.claude/settings.json and add:
+```
+
+### 2. Register Marketplace in Claude Code
+
+```bash
 # Edit ~/.claude/settings.json and add:
 ```
 ```json
 {
   "extraKnownMarketplaces": {
-    "team-marketplace": {
+    "leanix-team-marketplace": {
       "source": {
         "source": "directory",
-        "path": "/absolute/path/to/claude-plugins-marketplace/plugins"
-      }
+        "path": "/absolute/path/to/claude-plugins-marketplace"
+      },
+      "autoUpdate": true
     }
   }
 }
 ```
 
-**Important:** Replace `/absolute/path/to/` with your actual path!
+**Important:**
+- Replace `/absolute/path/to/claude-plugins-marketplace` with your actual path!
+- Path MUST point to the **repo root** (NOT `plugins/` subdirectory!)
+- **Plugins are enabled directly in settings** - no separate install step needed
+- After adding new plugins or updating submodules, run `./build-plugins.sh` to rebuild
 
 ```bash
-# 3. Install CLI (optional, for managing plugins)
-./cli/install.sh
+# 4. Reload plugins in Claude Code
+/reload-plugins
 
-# 4. List available plugins
-claude-plugin list
+# 5. Verify plugins are available
+/plugin
+# You should see: pr-notifier@leanix-team-marketplace, jira-status-update@leanix-team-marketplace, etc.
 
-# 5. Install a plugin
-claude-plugin install <plugin-name>
-
-# 6. Create new plugin from template
-claude-plugin create my-new-plugin
+# 6. Use plugin commands
+/pr-watch TAK-1234
+/status-update TAK-1475
 ```
+
+### 🔄 Updating Plugins
+
+**If using pre-built branch:**
+```bash
+cd claude-plugins-marketplace
+git pull origin built
+/reload-plugins  # In Claude Code
+```
+
+**If building from source:**
+```bash
+cd claude-plugins-marketplace
+git pull origin main
+git submodule update --remote
+./build-plugins.sh
+/reload-plugins  # In Claude Code
+```
+
+## 🔧 How It Works
+
+### Automated CI/CD Pipeline
+
+1. **Developer pushes** to `main` branch
+2. **GitHub Actions** automatically:
+   - Checks out repo with all submodules
+   - Runs `./build-plugins.sh`
+   - Commits built artifacts to `built` branch
+3. **Users clone** the `built` branch → get pre-compiled plugins
+4. **No manual build needed!**
+
+### For Contributors
+
+- **Main branch**: Source code, no build artifacts
+- **Built branch**: Auto-generated, includes `build/` and `node_modules/`
+- **Never commit** build artifacts to `main`
+- **CI handles** all builds automatically
 
 ## 📦 Plugin Structure
 
 ```
 claude-plugins-marketplace/
-├── registry.json           # Plugin catalog
+├── .claude-plugin/
+│   └── marketplace.json         # Claude Code marketplace definition (auto-generated)
+├── registry.json                # Plugin catalog (source of truth)
+├── sync-marketplace.sh          # Sync marketplace.json from registry.json
+├── build-plugins.sh             # Build all TypeScript plugins
 ├── plugins/
-│   ├── shared/            # Shared plugins (all teams)
-│   └── team-takeoff/      # Team-specific plugins
-├── cli/
-│   └── claude-plugin      # CLI tool
+│   ├── shared/                  # Shared plugins (all teams)
+│   │   └── pr-notifier/         # Git submodule
+│   └── team-takeoff/            # Team-specific plugins
+│       └── jira-status-update/  # Git submodule
 └── templates/
-    └── plugin-template/   # Template for new plugins (submodule)
+    └── plugin-template/         # Template for new plugins (submodule)
 ```
+
+**Plugin Management:**
+- `registry.json` = Source of truth for plugin metadata
+- `.claude-plugin/marketplace.json` = Auto-generated (run `./sync-marketplace.sh`)
+- Plugins as **git submodules** = Each plugin is a separate repo
+- **TypeScript plugins require build** = Run `./build-plugins.sh` after clone/update
 
 ## 🎯 Usage
 
@@ -135,6 +221,11 @@ The `create` command automatically adds entry to `registry.json`:
   "visibility": "team-only",
   "path": "plugins/team-takeoff/my-awesome-plugin"
 }
+```
+
+**IMPORTANT:** After adding to `registry.json`, run:
+```bash
+./sync-marketplace.sh  # Updates .claude-plugin/marketplace.json
 ```
 
 ### 4. Submit PR

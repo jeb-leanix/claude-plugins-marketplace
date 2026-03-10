@@ -10,3 +10,9 @@
 # Temp files
 *.tmp
 *.log
+
+# Plugin build artifacts (each plugin submodule manages its own build)
+# This is just to ensure no accidental commits from marketplace root
+plugins/*/node_modules/
+plugins/*/*/node_modules/
+plugins/*/*/build/
