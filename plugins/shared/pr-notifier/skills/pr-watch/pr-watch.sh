@@ -123,20 +123,9 @@ send_notification() {
         fi
 
         # Use Safari as sender to get better icon than Terminal
+        # Keep it simple - only use flags that work reliably
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
         cmd="$cmd -sender com.apple.Safari"
-
-        # Add GitHub icon as content image (shows in notification body)
-        if [[ -f "$github_icon" ]]; then
-            cmd="$cmd -contentImage \"$github_icon\""
-        fi
-
-        # If specific icon URL provided, use it as content image
-        if [[ -n "$icon" ]]; then
-            cmd="$cmd -contentImage \"$icon\""
-        fi
-
-        # Add clickable PR link (opens in browser on click)
         cmd="$cmd -open \"$pr_link\""
 
         eval "$cmd" 2>/dev/null || true
