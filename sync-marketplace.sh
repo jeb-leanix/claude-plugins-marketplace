@@ -31,13 +31,14 @@ jq '{
     select(.category != "template") |  # Exclude templates
     {
       name: .id,
-      source: ("./" + .path),
       description: .description,
       version: .version,
-      category: .team,
       author: {
-        name: (if .team == "shared" then "LeanIX Shared" else "Team TAKEOFF" end)
-      }
+        name: "Jens Beau",
+        email: "jens.beau@sap.com"
+      },
+      source: ("./" + .path),
+      category: .team
     }
   ]
 }' "$REGISTRY_FILE" > "$MARKETPLACE_FILE"
