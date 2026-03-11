@@ -122,10 +122,9 @@ send_notification() {
             curl -s "https://github.githubassets.com/favicons/favicon.png" -o "$github_icon" 2>/dev/null || true
         fi
 
-        # Use Safari as sender to get better icon than Terminal
         # Keep it simple - only use flags that work reliably
+        # Note: -sender blocks notifications (macOS security restriction)
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
-        cmd="$cmd -sender com.apple.Safari"
         cmd="$cmd -open \"$pr_link\""
 
         eval "$cmd" 2>/dev/null || true
