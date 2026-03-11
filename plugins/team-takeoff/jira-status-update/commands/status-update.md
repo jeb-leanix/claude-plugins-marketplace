@@ -24,32 +24,56 @@ Execute the jira-status-update skill to fetch and analyze the specified epic and
 
 When this command is invoked:
 
-1. **Extract parameters** from the command:
-   - Epic key (required, first argument after command name)
-   - Format flag: `--format=slack` or `--format=markdown` (default: slack)
-   - Detail flag: `--detail=compact|detailed|executive` (default: compact)
+1. **Parse the arguments**:
+   - First argument: Epic key (required, e.g., `TAK-1475`, `LUM-123`)
+   - Optional flags: `--format=slack|markdown` (default: slack)
+   - Optional flags: `--detail=compact|detailed|executive` (default: compact)
+   - Pass ALL arguments exactly as provided
 
-2. **Fetch epic data** using leanix-atlassian MCP:
+2. **Load Jira API configuration** (token-efficient method):
+   - Read API config from `~/.claude/projects/-Users-I529075-dev-import-export/memory/atlassian-api.json`
+   - This file contains: `email`, `api_token`, `cloud_id`, `base_url`
+   - **PREFERRED**: Use direct API calls (90% fewer tokens than MCP)
+   - **FALLBACK**: If config file doesn't exist or auth fails, use MCP tools
+
+3. **Fetch epic data using direct API** (preferred):
+   - Use Bash tool with curl to call Jira REST API
+   - Authenticate with Basic Auth: `base64(email:api_token)`
+   - Example:
+   ```bash
+   BASE_URL="https://api.atlassian.com/ex/jira/19c32ce6-4e51-4d0a-b67f-114ccbc77255/rest/api/3"
+   AUTH=$(echo -n "email:api_token" | base64)
+
+   curl -s -X GET "$BASE_URL/issue/TAK-1475?fields=summary,status,issuetype,assignee,priority,created,updated,description,project" \
+     -H "Authorization: Basic $AUTH" \
+     -H "Content-Type: application/json"
+   ```
+
+4. **Fetch sub-tasks using direct API** (preferred):
+   - Use JQL search endpoint: `POST /rest/api/3/search/jql`
+   - Example:
+   ```bash
+   curl -s -X POST "$BASE_URL/search/jql" \
+     -H "Authorization: Basic $AUTH" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "jql": "\"Epic Link\" = TAK-1475 ORDER BY status ASC, priority DESC",
+       "fields": ["summary", "status", "issuetype", "assignee", "priority", "created", "updated", "description"],
+       "maxResults": 100
+     }'
+   ```
+
+   **Alternative: MCP fallback** (only if API config unavailable):
    ```
    mcp__leanix-atlassian__searchJiraIssuesUsingJql({
      cloudId: "leanix.atlassian.net",
-     jql: `key = ${epicKey}`,
-     fields: ["summary", "status", "issuetype", "assignee", "priority", "created", "updated", "description", "project"],
-     maxResults: 1
-   })
-   ```
-
-3. **Fetch sub-tasks** using leanix-atlassian MCP:
-   ```
-   mcp__leanix-atlassian__searchJiraIssuesUsingJql({
-     cloudId: "leanix.atlassian.net",
-     jql: `"Epic Link" = ${epicKey} ORDER BY status ASC, priority DESC`,
+     jql: "\"Epic Link\" = TAK-1475 ORDER BY status ASC, priority DESC",
      fields: ["summary", "status", "issuetype", "assignee", "priority", "created", "updated", "description"],
      maxResults: 100
    })
    ```
 
-4. **Analyze the data**:
+4. **Analyze the fetched data**:
    - Calculate progress: done tasks / total tasks
    - Identify blockers (status = "Blocked")
    - Group tasks by status (To Do, In Progress, In Review, Done, Blocked)
@@ -83,9 +107,9 @@ When this command is invoked:
    - **Detailed**: Show all tasks grouped by status
    - **Executive**: High-level summary with risks and timeline
 
-6. **Return** the formatted status update to the user
+6. **Display the formatted status update** to the user
 
-7. **Optional: Post to Slack**
+7. **Optional: Post to Slack (if user wants it)**
 
    After showing the status update, ask the user if they want to post it to Slack using AskUserQuestion:
 
@@ -186,6 +210,16 @@ When this command is invoked:
 - Strategic overview focusing on risks
 - Minimal task-level detail
 - Recommended for leadership updates
+
+## Important Notes
+
+- **DO NOT** try to execute TypeScript code or use the Skill tool
+- **PREFERRED**: Use direct Jira REST API via Bash curl (90% fewer tokens, much faster)
+  - Load credentials from `~/.claude/projects/-Users-I529075-dev-import-export/memory/atlassian-api.json`
+  - Use Basic Auth: `Authorization: Basic $(echo -n "email:api_token" | base64)`
+- **FALLBACK**: Use MCP tools (`mcp__leanix-atlassian__searchJiraIssuesUsingJql`) if API config unavailable
+- **DO** call API requests in parallel when fetching epic + sub-tasks (no dependencies)
+- Direct API gives full access (including issue links, which MCP doesn't support)
 
 ## Requirements
 
