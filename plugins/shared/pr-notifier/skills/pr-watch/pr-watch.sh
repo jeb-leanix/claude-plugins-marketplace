@@ -113,14 +113,26 @@ send_notification() {
         # Use terminal-notifier with icons
         local pr_link="https://github.com/leanix/import-export/pull/$PR_NUMBER"
 
-        # Use GitHub favicon as default icon
-        local default_icon="https://github.githubassets.com/favicons/favicon.svg"
-        local app_icon="${icon:-$default_icon}"
+        # Use local GitHub icon as content image (downloaded to ~/.claude/plugins-assets/)
+        local github_icon="$HOME/.claude/plugins-assets/pr-notifier/github-icon.png"
+
+        # Download icon if not exists
+        if [[ ! -f "$github_icon" ]]; then
+            mkdir -p "$(dirname "$github_icon")"
+            curl -s "https://github.githubassets.com/favicons/favicon.png" -o "$github_icon" 2>/dev/null || true
+        fi
 
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
 
-        # Always add app icon (default or specified)
-        cmd="$cmd -appIcon \"$app_icon\""
+        # Add GitHub icon as content image (shows in notification body)
+        if [[ -f "$github_icon" ]]; then
+            cmd="$cmd -contentImage \"$github_icon\""
+        fi
+
+        # If specific icon URL provided, use it as content image
+        if [[ -n "$icon" ]]; then
+            cmd="$cmd -contentImage \"$icon\""
+        fi
 
         # Add clickable PR link (opens in browser on click)
         cmd="$cmd -open \"$pr_link\""
