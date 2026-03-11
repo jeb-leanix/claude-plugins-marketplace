@@ -47,9 +47,17 @@ jobs:
           # Create or checkout built branch
           git checkout -B built
 
-          # Add built artifacts (build/ directories)
-          git add -f plugins/*/build/ plugins/*/*/build/ 2>/dev/null || true
-          git add -f plugins/*/node_modules/ plugins/*/*/node_modules/ 2>/dev/null || true
+          # Remove .gitmodules and submodule folders to flatten the structure
+          rm .gitmodules
+          git rm --cached plugins/shared/pr-notifier plugins/team-takeoff/jira-status-update templates/plugin-template 2>/dev/null || true
+
+          # Remove .git files in submodules (convert to regular directories)
+          rm -f plugins/shared/pr-notifier/.git
+          rm -f plugins/team-takeoff/jira-status-update/.git
+          rm -f templates/plugin-template/.git
+
+          # Add all plugin files including build artifacts
+          git add plugins/ templates/
 
           # Commit if there are changes
           if git diff --staged --quiet; then
