@@ -111,6 +111,7 @@ send_notification() {
 
     if [[ "$NOTIFIER" == "terminal-notifier" ]]; then
         # Use terminal-notifier with icons
+        local pr_link="https://github.com/leanix/import-export/pull/$PR_NUMBER"
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
 
         # Add app icon if specified
@@ -118,8 +119,12 @@ send_notification() {
             cmd="$cmd -appIcon \"$icon\""
         fi
 
-        # Add action button for PR link
-        cmd="$cmd -open \"https://github.com/leanix/import-export/pull/$PR_NUMBER\""
+        # Add clickable PR link (opens in browser on click)
+        cmd="$cmd -open \"$pr_link\""
+
+        # Add action button with clear label
+        cmd="$cmd -actions \"View PR\""
+        cmd="$cmd -dropdownLabel \"PR #$PR_NUMBER\""
 
         eval "$cmd" 2>/dev/null || true
     else
@@ -164,8 +169,10 @@ echo "📊 Monitoring: $PR_TITLE"
 echo ""
 
 # Send initial notification
+PR_URL="https://github.com/leanix/import-export/pull/$PR_NUMBER"
 echo "Using notification method: $NOTIFIER"
-send_notification "Monitoring Started 👀" "$PR_TITLE" "Submarine"
+echo "PR URL: $PR_URL"
+send_notification "Monitoring Started 👀" "$PR_TITLE\n\nClick to open PR" "Submarine"
 
 # Check initial state for already completed checks
 INITIAL_CHECKS=$(jq -r '.statusCheckRollup | length' "$LAST_STATE_FILE" 2>/dev/null || echo "0")
@@ -186,7 +193,7 @@ if [[ "$INITIAL_CHECKS" -gt 0 ]]; then
 
     if $ALL_PASSED_INITIAL && [[ "$PASSED_INITIAL" -eq "$INITIAL_CHECKS" ]]; then
         echo "✨ All checks already passed! ($PASSED_INITIAL/$INITIAL_CHECKS)"
-        send_notification "All Checks Passed! ✨" "$PASSED_INITIAL/$INITIAL_CHECKS checks succeeded" "Glass" "https://github.githubassets.com/favicons/favicon-success.svg"
+        send_notification "All Checks Passed! ✨" "$PASSED_INITIAL/$INITIAL_CHECKS checks succeeded\n\nClick to open PR" "Glass" "https://github.githubassets.com/favicons/favicon-success.svg"
 
         # Transition Jira ticket to "In Review" if specified
         if [[ -n "$JIRA_TICKET" ]]; then
@@ -318,7 +325,7 @@ while $MONITORING; do
     if [[ "$LAST_STATE_VALUE" != "$CURRENT_STATE_VALUE" ]] && [[ -n "$LAST_STATE_VALUE" ]]; then
         if [[ "$CURRENT_STATE_VALUE" == "MERGED" ]]; then
             echo "🎉 PR has been merged!"
-            send_notification "PR Merged! 🎉" "$PR_TITLE" "Glass" "https://github.githubassets.com/favicons/favicon-success.svg"
+            send_notification "PR Merged! 🎉" "$PR_TITLE\n\nClick to open PR" "Glass" "https://github.githubassets.com/favicons/favicon-success.svg"
             MONITORING=false
             STOP_REASON="merged"
         elif [[ "$CURRENT_STATE_VALUE" == "CLOSED" ]]; then
@@ -351,7 +358,7 @@ while $MONITORING; do
         if $ALL_PASSED && [[ "$PASSED_COUNT" -eq "$CURRENT_CHECKS" ]] && [[ "$LAST_ALL_PASSED" -ne "$CURRENT_CHECKS" ]]; then
             echo "✨ All checks passed! ($PASSED_COUNT/$CURRENT_CHECKS)"
             if should_notify "checks"; then
-                send_notification "All Checks Passed! ✨" "$PASSED_COUNT/$CURRENT_CHECKS checks succeeded" "Glass" "https://github.githubassets.com/favicons/favicon-success.svg"
+                send_notification "All Checks Passed! ✨" "$PASSED_COUNT/$CURRENT_CHECKS checks succeeded\n\nClick to open PR" "Glass" "https://github.githubassets.com/favicons/favicon-success.svg"
             fi
 
             # Transition Jira ticket to "In Review" if specified
