@@ -112,12 +112,15 @@ send_notification() {
     if [[ "$NOTIFIER" == "terminal-notifier" ]]; then
         # Use terminal-notifier with icons
         local pr_link="https://github.com/leanix/import-export/pull/$PR_NUMBER"
+
+        # Use GitHub favicon as default icon
+        local default_icon="https://github.githubassets.com/favicons/favicon.svg"
+        local app_icon="${icon:-$default_icon}"
+
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
 
-        # Add app icon if specified
-        if [[ -n "$icon" ]]; then
-            cmd="$cmd -appIcon \"$icon\""
-        fi
+        # Always add app icon (default or specified)
+        cmd="$cmd -appIcon \"$app_icon\""
 
         # Add clickable PR link (opens in browser on click)
         cmd="$cmd -open \"$pr_link\""
