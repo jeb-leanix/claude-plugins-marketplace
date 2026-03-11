@@ -123,7 +123,6 @@ send_notification() {
         fi
 
         # Use Safari as sender to get better icon than Terminal
-        # GitHub Desktop would be better but requires installation
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
         cmd="$cmd -sender com.apple.Safari"
 
@@ -139,10 +138,6 @@ send_notification() {
 
         # Add clickable PR link (opens in browser on click)
         cmd="$cmd -open \"$pr_link\""
-
-        # Add action button with clear label
-        cmd="$cmd -actions \"View PR\""
-        cmd="$cmd -dropdownLabel \"PR #$PR_NUMBER\""
 
         eval "$cmd" 2>/dev/null || true
     else
