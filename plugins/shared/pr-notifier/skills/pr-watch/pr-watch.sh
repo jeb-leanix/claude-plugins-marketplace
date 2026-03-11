@@ -123,7 +123,7 @@ send_notification() {
         fi
 
         # Keep it simple - only use flags that work reliably
-        # Note: -sender blocks notifications (macOS security restriction)
+        # Note: -sender and -appIcon don't change the icon for terminal scripts (macOS security)
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
         cmd="$cmd -open \"$pr_link\""
 
