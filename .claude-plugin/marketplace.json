@@ -1,4 +1,5 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "leanix-team-marketplace",
   "displayName": "LeanIX Team Marketplace",
   "version": "1.0.0",
@@ -18,7 +19,8 @@
         "email": "jens.beau@sap.com"
       },
       "source": "./plugins/shared/pr-notifier",
-      "category": "shared"
+      "category": "shared",
+      "homepage": "https://github.com/jeb-leanix/pr-notifier.git"
     },
     {
       "name": "jira-status-update",
@@ -29,7 +31,8 @@
         "email": "jens.beau@sap.com"
       },
       "source": "./plugins/team-takeoff/jira-status-update",
-      "category": "team-takeoff"
+      "category": "team-takeoff",
+      "homepage": "https://github.com/jeb-leanix/jira-status-update-command.git"
     }
   ]
 }

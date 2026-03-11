@@ -17,6 +17,7 @@ echo "Syncing marketplace.json from registry.json..."
 
 # Extract plugins from registry.json and convert to marketplace.json format
 jq '{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   name: "leanix-team-marketplace",
   displayName: "LeanIX Team Marketplace",
   version: "1.0.0",
@@ -37,8 +38,12 @@ jq '{
         name: "Jens Beau",
         email: "jens.beau@sap.com"
       },
-      source: ("./" + .path),
-      category: .team
+      source: {
+        source: "directory",
+        path: ("./" + .path)
+      },
+      category: .team,
+      homepage: .repository
     }
   ]
 }' "$REGISTRY_FILE" > "$MARKETPLACE_FILE"
