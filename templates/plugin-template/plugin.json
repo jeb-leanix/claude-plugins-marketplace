@@ -1,0 +1,17 @@
+{
+  "name": "plugin-template",
+  "version": "1.0.0",
+  "description": "Template for creating new Claude Code plugins",
+  "author": "Your Name",
+  "homepage": "https://github.com/your-org/your-plugin",
+  "skills": [
+    "example-skill"
+  ],
+  "settings": {
+    "example-setting": {
+      "type": "string",
+      "description": "Example plugin setting",
+      "default": "default-value"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "jira-status-skill",
+  "version": "1.0.0",
+  "description": "Claude Skill for generating Jira Epic status updates",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "dev": "npm run build && node build/index.js"
+  },
+  "keywords": ["claude-skill", "jira", "status-update"],
+  "author": "Jens Beau",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

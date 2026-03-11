@@ -1,0 +1,10 @@
+{
+  "name": "example-skill",
+  "description": "Example skill that demonstrates plugin capabilities",
+  "instructions": [
+    {
+      "type": "text",
+      "text": "This is an example skill that shows how to structure plugin skills.\n\n## When to Use\n\nUse this skill when:\n- The user asks for help with something specific\n- A certain condition is met\n\n## How It Works\n\n1. Skill receives user input\n2. Processes the request\n3. Returns helpful information\n\n## Examples\n\n```bash\n# Example command\n/example-skill do-something\n```\n\n## Configuration\n\nThis skill uses the following settings from `plugin.json`:\n- `example-setting`: Description of what this setting does\n\n## Arguments\n\nARGUMENTS: {{args}}"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "jira-status-update",
+  "description": "Generate comprehensive Jira Epic status updates for LeanIX Team Takeoff",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jens Beau - Team Takeoff"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "jira-status-update",
+  "version": "1.0.0",
+  "description": "Generate comprehensive status updates for Jira Epics with interactive Slack posting for LeanIX Team Takeoff",
+  "author": "Jens Beau",
+  "homepage": "https://github.com/jeb-leanix/jira-status-update-command",
+  "team": "team-takeoff",
+  "skills": [
+    "status-update"
+  ],
+  "requirements": {
+    "leanix-atlassian": "leanix-atlassian MCP server for Jira access",
+    "slack-token": "Slack Bot Token with chat:write permission (optional, for Slack posting)"
+  },
+  "settings": {
+    "default-format": {
+      "type": "string",
+      "description": "Default output format (slack, markdown)",
+      "default": "slack"
+    },
+    "default-detail": {
+      "type": "string",
+      "description": "Default detail level (compact, detailed, executive)",
+      "default": "compact"
+    },
+    "default-channel": {
+      "type": "string",
+      "description": "Default Slack channel for posting",
+      "default": "#team-takeoff-internal"
+    }
+  }
+}

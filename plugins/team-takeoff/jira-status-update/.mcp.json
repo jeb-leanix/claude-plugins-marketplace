@@ -1,0 +1,42 @@
+{
+  "name": "jira-status-update",
+  "version": "1.0.0",
+  "description": "Generate comprehensive Jira Epic status updates in multiple formats",
+  "author": "Jens Beau - Team Takeoff",
+  "entrypoint": "build/index.js",
+  "runtime": "node",
+  "category": "productivity",
+  "keywords": ["jira", "status", "epic", "reporting", "team"],
+  "requirements": {
+    "mcpServers": ["leanix-atlassian"]
+  },
+  "commands": [
+    {
+      "name": "status-update",
+      "description": "Generate a status update for a Jira Epic",
+      "usage": "/status-update TAK-1475 [options]",
+      "examples": [
+        "/status-update TAK-1475",
+        "/status-update TAK-1475 --format=slack",
+        "/status-update TAK-1475 --format=markdown --detail=executive",
+        "/status-update TAK-1475 --detail=detailed"
+      ],
+      "options": [
+        {
+          "name": "format",
+          "type": "string",
+          "choices": ["slack", "markdown"],
+          "default": "slack",
+          "description": "Output format"
+        },
+        {
+          "name": "detail",
+          "type": "string",
+          "choices": ["compact", "detailed", "executive"],
+          "default": "compact",
+          "description": "Level of detail"
+        }
+      ]
+    }
+  ]
+}
