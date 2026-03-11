@@ -56,8 +56,11 @@ jobs:
           rm -f plugins/team-takeoff/jira-status-update/.git
           rm -f templates/plugin-template/.git
 
+          # Remove or modify .gitignore files that exclude build artifacts
+          find plugins/ -name ".gitignore" -exec sed -i '/build\//d; /node_modules\//d' {} \; || true
+
           # Add all plugin files including build artifacts
-          git add plugins/ templates/
+          git add -f plugins/ templates/
 
           # Commit if there are changes
           if git diff --staged --quiet; then
