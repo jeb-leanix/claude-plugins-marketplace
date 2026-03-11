@@ -65,8 +65,31 @@ for arg in "$@"; do
 done
 
 if [[ -z "$PR_NUMBER" ]]; then
-    echo "Usage: $0 <PR_NUMBER> [OPTIONS]"
+    echo "Usage: $0 <PR_NUMBER|JIRA-KEY> [OPTIONS]"
     exit 1
+fi
+
+# Resolve Jira key to PR number if needed
+if [[ "$PR_NUMBER" =~ ^[A-Z]+-[0-9]+$ ]]; then
+    echo "🔍 Resolving Jira key $PR_NUMBER to PR number..."
+
+    # Search for PR by branch name, title, or body
+    RESOLVED_PR=$(gh pr list --limit 50 --json number,title,headRefName,body --state all | \
+        jq -r --arg jira "$PR_NUMBER" '.[] | select(
+            .headRefName | contains($jira) or
+            .title | contains($jira) or
+            .body | contains($jira)
+        ) | .number' | head -1)
+
+    if [[ -z "$RESOLVED_PR" ]]; then
+        echo "❌ Could not find PR for Jira key: $PR_NUMBER"
+        exit 1
+    fi
+
+    echo "   $PR_NUMBER → PR #$RESOLVED_PR"
+    echo ""
+    JIRA_KEY="$PR_NUMBER"
+    PR_NUMBER="$RESOLVED_PR"
 fi
 
 LAST_STATE_FILE="/tmp/pr_${PR_NUMBER}_last_state.json"

@@ -1,179 +1,127 @@
 ---
 name: pr-watch
 description: Monitor GitHub PR status - CI/CD checks, reviews, comments, and merge conflicts
-usage: /pr-watch <PR-NUMBER|JIRA-KEY[,...]> [--notify-on=all|checks|reviews|comments] [--interval=30s] [--until=checks-pass|approved|merged|closed] [--desktop] [--bell]
+usage: /pr-watch <PR-NUMBER|JIRA-KEY> [--notify-on=all|checks|reviews|comments] [--interval=30s] [--until=checks-pass|approved|merged|closed] [--bell]
 examples:
   - /pr-watch 1085
-  - /pr-watch TAK-1674
-  - /pr-watch TAK-1674 --notify-on=checks --desktop
+  - /pr-watch TAK-1814
+  - /pr-watch TAK-1814 --notify-on=checks
   - /pr-watch 1085 --until=checks-pass --interval=15s --bell
-  - /pr-watch 1085,TAK-1256,1087 --notify-on=checks --desktop
 ---
 
 # Monitor GitHub Pull Request
 
-Execute the pr-notifier skill to watch a GitHub PR's CI/CD status, reviews, and comments.
-
-## Parameters
-
-- **PR-NUMBER|JIRA-KEY** (required): PR number (e.g., 1085) or Jira ticket key (e.g., TAK-1674)
-  - Supports comma-separated list for multiple PRs
-- **--notify-on** (optional): Filter notifications - `all` (default), `checks`, `reviews`, or `comments`
-- **--interval** (optional): Polling interval - `30s` (default), `15s`, `60s`, or `1m`
-- **--until** (optional): Auto-stop condition - `checks-pass`, `approved`, `merged`, or `closed`
-- **--desktop** (optional): Enable macOS desktop notifications
-- **--bell** (optional): Enable terminal bell/beep
+Watch a GitHub PR's CI/CD checks, reviews, and comments in real-time with desktop notifications.
 
 ## Instructions for Claude
 
 When this command is invoked:
 
-1. **Extract parameters** from the command:
-   - PR identifier(s) (required, first argument - can be PR number or Jira key, comma-separated for multiple)
-   - `--notify-on` flag (optional, default: "all")
-   - `--interval` flag (optional, default: "30s")
-   - `--until` flag (optional)
-   - `--desktop` flag (optional boolean)
-   - `--bell` flag (optional boolean)
+1. **Locate the pr-watch.sh script**:
+   - Script path: `{{base_directory}}/skills/pr-watch/pr-watch.sh`
+   - This is an executable shell script that handles all PR monitoring logic
 
-2. **Call the TypeScript skill** with parsed parameters:
-   ```typescript
-   import { execute } from './build/index.js';
+2. **Parse the arguments**:
+   - First argument: PR identifier (number like `1085` OR Jira key like `TAK-1814`)
+   - Optional flags: `--notify-on`, `--interval`, `--until`, `--bell`, `--no-desktop`
+   - Pass ALL arguments exactly as provided to the script
 
-   const result = await execute(
-     context,
-     prIdentifiers, // e.g., "1085" or "TAK-1674" or "1085,TAK-1256,1087"
-     {
-       notifyOn: "checks",     // or "all", "reviews", "comments"
-       interval: "30s",
-       until: "checks-pass",   // or "approved", "merged", "closed"
-       desktop: true,
-       bell: true
-     }
-   );
+3. **Execute the script using the Bash tool**:
+   - Use `run_in_background: true` so it runs asynchronously
+   - The script will:
+     - Resolve Jira keys to PR numbers automatically
+     - Poll GitHub via `gh` CLI at regular intervals
+     - Send macOS desktop notifications (default: enabled)
+     - Report CI/CD checks, reviews, and comments in real-time
+     - Auto-stop when conditions are met (if `--until` is specified)
+
+4. **Example Bash tool call**:
+   ```bash
+   bash {{base_directory}}/skills/pr-watch/pr-watch.sh <PR-IDENTIFIER> [FLAGS]
    ```
 
-3. **The skill will**:
-   - Resolve Jira ticket keys to PR numbers (if needed)
-   - Poll GitHub via `gh` CLI at specified interval
-   - Detect and report changes:
-     - ✅ CI/CD check status changes
-     - 👀 New reviews or reviewer changes
-     - 💬 New comments
-     - ⚠️ Merge conflicts
-     - 🔄 PR status changes (merged, closed, etc.)
-   - Send desktop notifications (if enabled)
-   - Play terminal bell (if enabled)
-   - Auto-stop when conditions are met
-   - Generate summary report
+   If the user provides `TAK-1814`:
+   ```bash
+   bash {{base_directory}}/skills/pr-watch/pr-watch.sh TAK-1814
+   ```
 
-4. **Output the results** to the user:
-   - Real-time event notifications with timestamps
-   - PR state overview
-   - Summary statistics when monitoring completes
+   If the user provides `1085 --notify-on=checks --until=checks-pass`:
+   ```bash
+   bash {{base_directory}}/skills/pr-watch/pr-watch.sh 1085 --notify-on=checks --until=checks-pass
+   ```
+
+5. **Tell the user**:
+   - Inform them that PR monitoring has started in the background
+   - They will receive desktop notifications for important events
+   - The watcher will automatically stop when conditions are met (or they can stop it manually)
+
+## Important Notes
+
+- **DO NOT** try to call TypeScript code or use the Skill tool
+- **DO** use the Bash tool to execute the shell script directly
+- **DO** run it in the background (`run_in_background: true`)
+- **DO** pass through all user arguments to the script unchanged
+- The script handles Jira key resolution, notifications, and all monitoring logic
 
 ## What Gets Monitored
 
 ### CI/CD Checks
-- Build status changes (pending → success/failure)
-- Test execution (unit tests, integration tests)
-- Other workflow checks
+- ✅ Build status (pending → success/failure)
+- ✅ Unit tests, integration tests
+- ✅ All workflow checks
 
 ### Reviews
-- New reviews submitted
-- Review state changes (approved, changes requested)
-- Reviewer assignments
+- 👀 Review requests sent
+- ✅ Reviews completed (approved/changes requested)
+- 👥 Reviewer assignments
 
 ### Comments
-- PR-level comments
-- Review comments on code
-- Inline suggestions
+- 💬 PR-level comments
+- 📝 Review comments on code
+- 🔧 Inline suggestions
 
 ### PR Status
-- Status changes (draft → ready, merged, closed)
-- Merge conflict detection
-- Label changes
+- 🔄 Status changes (draft → ready, merged, closed)
+- ⚠️ Merge conflicts detected
+- 🏷️ Label changes
 
-## Notification Options
+## Options
 
-### --notify-on Filter
-- `all` (default): Report all events
+### --notify-on
+Filter what events to report:
+- `all` (default): Report everything
 - `checks`: Only CI/CD check status
 - `reviews`: Only review activity
 - `comments`: Only new comments
 
-### --interval Polling
+### --interval
+Polling frequency:
 - `15s`: Fast polling (more API calls)
 - `30s`: Balanced (default)
-- `60s` or `1m`: Slow polling (fewer API calls)
+- `60s`: Slow polling (fewer API calls)
 
-### --until Auto-Stop
+### --until
+Auto-stop condition:
 - `checks-pass`: Stop when all checks succeed
 - `approved`: Stop when PR is approved
 - `merged`: Stop when PR is merged
-- `closed`: Stop when PR is closed or merged
+- `closed`: Stop when PR is closed
 
-### --desktop Notifications
-- Shows important events as macOS system notifications
-- Includes summary when monitoring completes
-- Uses different sounds for success/error/warning
+### --bell
+Enable terminal bell/beep on important events
 
-### --bell Terminal Bell
-- Beeps on important events
-- Double beep when monitoring completes
-- Non-intrusive audio feedback
+### --no-desktop
+Disable desktop notifications (enabled by default)
 
 ## Jira Key Resolution
 
-When a Jira ticket key is provided (e.g., `TAK-1674`):
-1. Searches recent PRs (last 50) for the ticket key
-2. Checks in order:
-   - Branch name (most reliable): `TAK-1674-fix-issue`
-   - PR title: `TAK-1674: Fix the bug`
-   - PR body: Contains `TAK-1674` or link to ticket
-3. Uses the first match found
-4. Shows resolution info: `TAK-1674 → PR #1085`
-
-## Multi-PR Support
-
-When multiple identifiers are provided (comma-separated):
-- Monitors all PRs simultaneously
-- Reports events for each PR
-- Shows summary when all PRs are complete
-- Example: `/pr-watch 1085,TAK-1256,1087`
+The script automatically resolves Jira keys to PR numbers:
+- Searches recent PRs (last 50) for the ticket key
+- Checks: branch name → PR title → PR body
+- Shows: `TAK-1814 → PR #1219`
 
 ## Requirements
 
-- **GitHub CLI** (`gh`) must be installed and authenticated
+- GitHub CLI (`gh`) must be installed and authenticated
 - Access to the repository
 - Valid PR number or Jira ticket key
-
-## Example Outputs
-
-### Single PR Monitoring
-```
-🔍 Watching PR #1085
-📊 Notify on: checks
-⏱️  Polling interval: 30s
-🎯 Until: checks-pass
-
-[13:30:15] 🔄 Check started: build-test / build
-[13:32:15] ✅ Check success: build-test / build
-[13:32:45] 🔄 Check started: build-test / unit-tests
-
-✅ Condition met: checks-pass
-Stopping watch.
-```
-
-### Multi-PR Monitoring
-```
-🔍 Watching 3 PRs: #1085, #1256, #1087
-📊 Notify on: checks
-⏱️  Polling interval: 30s
-
-[13:30:15] PR #1085: ✅ Check success: build-test / build
-[13:30:45] PR #1256: ❌ Check failure: build-test / tests
-[13:31:15] PR #1087: ✅ Check success: build-test / build
-
-✅ All PRs complete!
-```
