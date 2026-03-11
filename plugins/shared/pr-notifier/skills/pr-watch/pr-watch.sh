@@ -76,13 +76,14 @@ if [[ "$PR_NUMBER" =~ ^[A-Z]+-[0-9]+$ ]]; then
     # Search for PR by branch name, title, or body
     RESOLVED_PR=$(gh pr list --limit 50 --json number,title,headRefName,body --state all | \
         jq -r --arg jira "$PR_NUMBER" '.[] | select(
-            .headRefName | contains($jira) or
-            .title | contains($jira) or
-            .body | contains($jira)
+            (.headRefName // "" | contains($jira)) or
+            (.title // "" | contains($jira)) or
+            (.body // "" | contains($jira))
         ) | .number' | head -1)
 
     if [[ -z "$RESOLVED_PR" ]]; then
         echo "❌ Could not find PR for Jira key: $PR_NUMBER"
+        echo "   Searched in: branch names, PR titles, and PR bodies"
         exit 1
     fi
 
