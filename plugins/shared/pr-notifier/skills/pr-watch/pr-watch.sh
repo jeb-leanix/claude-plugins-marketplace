@@ -122,7 +122,10 @@ send_notification() {
             curl -s "https://github.githubassets.com/favicons/favicon.png" -o "$github_icon" 2>/dev/null || true
         fi
 
+        # Use Safari as sender to get better icon than Terminal
+        # GitHub Desktop would be better but requires installation
         local cmd="terminal-notifier -title \"PR #$PR_NUMBER\" -subtitle \"$title\" -message \"$message\" -sound \"$sound\""
+        cmd="$cmd -sender com.apple.Safari"
 
         # Add GitHub icon as content image (shows in notification body)
         if [[ -f "$github_icon" ]]; then
